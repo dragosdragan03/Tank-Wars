@@ -42,7 +42,7 @@ void TankWars::Init() {
     camera->Update();
     GetCameraInput()->SetActive(false);
 
-    glm::vec3 corner = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 corner = glm::vec3(0.0f, -1, 0.0f);
     float squareSide = 1.0f;
 
     // height for terrain
@@ -54,6 +54,8 @@ void TankWars::Init() {
     float coordTankX = 500.0f;
     float coordTankY = function(coordTankX);
     float turretAngle = -M_PI / 8;
+    glm::vec3 upColorTrapezoid = glm::vec3(204.0f/255.0f, 175.0f/255.0f, 136.0f/255.0f); // brown
+    glm::vec3 buttomColorTrapezoid = glm::vec3(115.0f/255.0f, 100.0f/255.0f, 78.0f/255.0f); // green
 
     //Tank::Tank(float coordX, float coordY, float heightTank, float length, float angle, float turretAngle)
     goodTank = new tank::Tank(coordTankX, coordTankY, turretAngle, heightField, heightTank, lengthTank);
@@ -62,6 +64,10 @@ void TankWars::Init() {
     float coordEnemyX = 2000.0f;
     float coordEnemyY = function(coordEnemyX);
     float enemyTurretAngle = M_PI / 5;
+    //69, 75, 27
+    // 110,161,113)
+    glm::vec3 buttomColorTrapezoidEnemy = glm::vec3(69.0f/255.0f, 75.0f/255.0f, 27.0f/255.0f); // brown
+    glm::vec3 upColorTrapezoidEnemy = glm::vec3(110.0f/255.0f, 161.0f/255.0f, 113.0f/255.0f); // green
 
     enemyTank = new tank::Tank(coordEnemyX, coordEnemyY, enemyTurretAngle, heightField, heightTank, lengthTank);
 
@@ -71,28 +77,28 @@ void TankWars::Init() {
     Mesh* square = object2d::CreateSquare("square", corner, squareSide, glm::vec3(148.0f / 255.0f, 75.0f/255.0f, 44.0f / 255.0f), true);
     AddMeshToList(square);
 
-    Mesh* border = object2d::CreateRectangle("border", lengthTurret, heightTurret, glm::vec3(-lengthTurret / 2, -heightTurret / 2, 0), false);
+    Mesh* border = object2d::CreateRectangle("border", glm::vec3(1, 1, 1), lengthTurret, heightTurret, glm::vec3(-lengthTurret / 2, -heightTurret / 2, 0), false);
     AddMeshToList(border);
 
-    Mesh* healthBar = object2d::CreateRectangle("healthBar", lengthTurret, heightTurret, glm::vec3(-lengthTurret / 2, -heightTurret / 2, 0), true);
+    Mesh* healthBar = object2d::CreateRectangle("healthBar", glm::vec3(1, 0, 0), lengthTurret, heightTurret, glm::vec3(-lengthTurret / 2, -heightTurret / 2, 0), true);
     AddMeshToList(healthBar);
 
-    Mesh* turret = object2d::CreateRectangle("turret", lengthTurret, heightTurret, glm::vec3(0, -heightTurret / 2, 0), true);
+    Mesh* turret = object2d::CreateRectangle("turret", glm::vec3(100.0f / 255.0f, 100.0f/255.0f, 100.0f / 255.0f), lengthTurret, heightTurret, glm::vec3(0, -heightTurret / 2, 0), true);
     AddMeshToList(turret);
 
-    Mesh* tank = object2d::CreateTank("tank", glm::vec3(0, 0, 0), glm::vec3(-lengthTank/2, 0, 0), lengthTank, heightTank, true);
+    Mesh* tank = object2d::CreateTank("tank", upColorTrapezoid, buttomColorTrapezoid, glm::vec3(-lengthTank/2, 0, 0), lengthTank, heightTank);
     AddMeshToList(tank);
 
-    Mesh* enemyTank = object2d::CreateTank("enemyTank", glm::vec3(0, 0, 0), glm::vec3(-lengthTank/2, 0, 0), lengthTank, heightTank, true);
+    Mesh* enemyTank = object2d::CreateTank("enemyTank", upColorTrapezoidEnemy, buttomColorTrapezoidEnemy, glm::vec3(-lengthTank/2, 0, 0), lengthTank, heightTank);
     AddMeshToList(enemyTank);
 
-    // Mesh* projectile = object2d::CreateProjectile("projectile", projectileLength, glm::vec3(0, -projectileLength/2.5f, 0));
-    // AddMeshToList(projectile);
-
-    Mesh* projectile = object2d::CreateCircle("projectile", corner, 10, 360, glm::vec3(0, 0, 0)); // a projectile form of ball
+    Mesh* projectile = object2d::CreateProjectile("projectile", projectileLength, glm::vec3(0, -projectileLength/2.5f, 0));
     AddMeshToList(projectile);
 
-    Mesh* trajectoryCircle = object2d::CreateCircle("circle", corner, 3, 360, glm::vec3(0, 0, 0));
+    // Mesh* projectile = object2d::CreateCircle("projectile", corner, 10, 360, glm::vec3(0, 0, 0)); // a projectile form of ball
+    // AddMeshToList(projectile);
+
+    Mesh* trajectoryCircle = object2d::CreateCircle("circle", corner, 3, 360, glm::vec3(100.0f / 255.0f, 100.0f/255.0f, 100.0f / 255.0f));
     AddMeshToList(trajectoryCircle);
 
 }
@@ -136,16 +142,13 @@ void TankWars::generateTrajectoryForEnemyTank(float deltaTimeSeconds) {
 }
 
 void TankWars::generateTrajectoryForTank(float deltaTimeSeconds) {
-    int nrPoints = 500;
+    int nrPoints = 5000;
     glm::vec3 startPosition = goodTank->positionStartProjectile(lengthTurret);
     glm::vec3 startVelocity = goodTank->getInitialProjectileVelocity(); // Assuming this method exists
 
-
-
     float timeStep = deltaTimeSeconds * 100.0f; // Match your updatePosition scaling
-
+    // std::vector<pair<float, float>> trajectory;
     for (int i = 0; i < nrPoints; i++) {
-        glm::mat3 modelMatrix = glm::mat3(1.0f);
 
         // Simulate position
         float t = i * timeStep; // Accumulate time
@@ -159,9 +162,13 @@ void TankWars::generateTrajectoryForTank(float deltaTimeSeconds) {
         if (position.y < heightField[(int)std::round(position.x)]) {
             break;
         }
-        modelMatrix *= transform2d::Translate(position.x, position.y);
-        RenderMesh2D(meshes["circle"], shaders["VertexColor"], modelMatrix);
+        // trajectory.push_back(make_pair(position.x, position.y));
+        glm::mat3 modelMatrix = glm::mat3(1.0f);
+        float prevX = position.x;
+        float prevY = position.y;
 
+        modelMatrix *= transform2d::Translate(position.x ,position.y );
+        RenderMesh2D(meshes["circle"], shaders["VertexColor"], modelMatrix);
     }
 }
 
@@ -169,13 +176,16 @@ void TankWars::generateTrajectoryForTank(float deltaTimeSeconds) {
 
 void TankWars::renderField() {
     for (float i = 1; i < heightField.size(); i++) {
+
         float x1 = i - 1;
         float x2 = i;
         float y1 = heightField[x1];
         float y2 = heightField[x2];
+        if(x2 < heightField.size() - 1)
+        heightField[x2] = (heightField[x1] + heightField[x2 + 1]) / 2;
 
         modelMatrix = glm::mat3(1.0f);
-        modelMatrix *= transform2d::Translate(x1, 0);
+        modelMatrix *= transform2d::Translate(x1, y1);
 
         // Calculate scale factors for width and height
         float widthScale = x2 - x1;
@@ -196,6 +206,7 @@ void TankWars::Update(float deltaTimeSeconds) {
     renderField();
 
     if(goodTank->getHealth() > 0) {
+        goodTank->updateCoordEveryFrame();
         generateTrajectoryForTank(deltaTimeSeconds);
 
         modelMatrix = goodTank->placeTank(); // Pass the current TankWars instance
@@ -220,10 +231,11 @@ void TankWars::Update(float deltaTimeSeconds) {
     }
 
     if (enemyTank->getHealth() > 0) {
+        enemyTank->updateCoordEveryFrame();
         generateTrajectoryForEnemyTank(deltaTimeSeconds);
         //Enemy tank
         modelMatrix = enemyTank->placeTank();
-        RenderMesh2D(meshes["tank"], shaders["VertexColor"], modelMatrix);
+        RenderMesh2D(meshes["enemyTank"], shaders["VertexColor"], modelMatrix);
 
         //Turret for enemy tank
         modelMatrix = enemyTank->placeTurret();

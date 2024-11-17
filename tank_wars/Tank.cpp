@@ -11,8 +11,7 @@
 using namespace tank;
 using namespace std;
 
-
-Tank::Tank(float coordX, float coordY, float turretAngle, std::vector<float> heightField, float heightTank, float lengthTank)
+Tank::Tank(float coordX, float coordY, float turretAngle, std::vector<float> &heightField, float heightTank, float lengthTank)
         : coordTank(coordX, coordY), turretAngle(turretAngle), heightField(heightField), heightTank(heightTank), lengthTank(lengthTank) {
         calculateTankAngle();
         health = 5;
@@ -116,18 +115,6 @@ void Tank::addProjectile(float lengthTurret) {
         projectilesTank.push_back(projectile);
 }
 
-void Tank::setEnemyTank(Tank *enemyTank) {
-        this->enemyTank = enemyTank;
-}
-
-std::pair<float, float> Tank::getCoordoante() {
-        return coordTank;
-}
-
-float Tank::getTankAngle() {
-        return tankAngle;
-}
-
 glm::vec3 Tank::getInitialProjectileVelocity() const {
         return glm::vec3(
             std::cos(M_PI / 2 + turretAngle) * 10.0f,
@@ -137,14 +124,22 @@ glm::vec3 Tank::getInitialProjectileVelocity() const {
 }
 
 
-bool Tank::projectileHitTank(float coordProjectileX, float coordProjectileY) {
+bool Tank::projectileHitTank(float coordProjectileX, float coordProjectileY, bool forEnemy) {
 
         float radius = lengthTank;
-        float enemyTankAngle = enemyTank->getTankAngle();
-        pair<float, float> enemyCoord = enemyTank->getCoordoante();
+        float angle;
+        pair<float, float> coord;
+        if(forEnemy) {
+                angle = enemyTank->getTankAngle();
+                coord = enemyTank->getCoordoante();
+        } else {
+                angle = tankAngle;
+                coord = coordTank;
+        }
+
         float ip = 2.5f * heightTank;
-        float centerEnemyTankX = sin(-enemyTankAngle) * ip + enemyCoord.first;
-        float centerEnemyTankY = cos(enemyTankAngle) * ip + enemyCoord.second;
+        float centerEnemyTankX = sin(-angle) * ip + coord.first;
+        float centerEnemyTankY = cos(angle) * ip + coord.second;
         float distY = coordProjectileY - centerEnemyTankY;
         float distX = coordProjectileX - centerEnemyTankX;
 
@@ -154,17 +149,21 @@ bool Tank::projectileHitTank(float coordProjectileX, float coordProjectileY) {
         }
 
         return false;
-
 }
 
-void Tank::decreaseHealth() {
-        health -= 1;
-}
+void Tank::applyProjectileImpact(float impactX, float impactY, int radius) {
+        int center = static_cast<int>(std::round(impactX)); // Convert impact X-coordinate to heightField index
 
-int Tank::getHealth() {
-        return health;
-}
+        for(int i = 0; i < heightField.size(); i++) {
+                float distanceFromCenter = static_cast<float>(abs(i - center));
+                if(distanceFromCenter > radius) {
+                        continue;
+                }
+                float reduction = impactY - std::sqrt(radius * radius - distanceFromCenter * distanceFromCenter);
+                heightField[i] = max(0.0f, min(heightField[i], reduction));
+        }
 
+}
 
 glm::mat3 Tank::launchProjectile(int index, float deltaTimeSeconds) {
 
@@ -177,9 +176,17 @@ glm::mat3 Tank::launchProjectile(int index, float deltaTimeSeconds) {
         pair<float, float> trapezoid = returnTrapezoid(projectilPositionX);
 
         // i have to verify if it heats the other tank
-        bool hitTank = projectileHitTank(projectilPositionX, projectilPositionY);
+        bool hitEnemyTank = projectileHitTank(projectilPositionX, projectilPositionY, true);
+        bool hitTank = projectileHitTank(projectilPositionX, projectilPositionY, false);
 
-        if (hitTank && enemyTank->getHealth() > 0) {
+        if (hitTank) {
+                health --;
+                auto it = std::find(projectilesTank.begin(), projectilesTank.end(), iterProjectile);
+                projectilesTank.erase(it);
+                return modelMatrix;
+        }
+
+        if (hitEnemyTank && enemyTank->getHealth() > 0) {
                 enemyTank->decreaseHealth();
                 auto it = std::find(projectilesTank.begin(), projectilesTank.end(), iterProjectile);
                 projectilesTank.erase(it);
@@ -187,6 +194,7 @@ glm::mat3 Tank::launchProjectile(int index, float deltaTimeSeconds) {
         }
 
         if (projectilPositionY < trapezoid.second) { // this means is off the field so i have to erase it
+                applyProjectileImpact(projectilPositionX, projectilPositionY, 50); // Apply impact with RADIUS 50
                 auto it = std::find(projectilesTank.begin(), projectilesTank.end(), iterProjectile);
                 projectilesTank.erase(it);
                 return modelMatrix;
@@ -201,8 +209,33 @@ glm::mat3 Tank::launchProjectile(int index, float deltaTimeSeconds) {
 
 }
 
+void Tank::setEnemyTank(Tank *enemyTank) {
+        this->enemyTank = enemyTank;
+}
+
+std::pair<float, float> Tank::getCoordoante() {
+        return coordTank;
+}
+
+float Tank::getTankAngle() {
+        return tankAngle;
+}
+
+void Tank::decreaseHealth() {
+        health -= 1;
+}
+
+int Tank::getHealth() {
+        return health;
+}
+
 const std::vector<projectile::Projectile*>& Tank::getProjectiles() const {
         return projectilesTank;
+}
+
+void Tank::updateCoordEveryFrame() {
+        coordTank.second = calculateCoordY(coordTank.first);
+        calculateTankAngle();
 }
 
 void Tank::updateCoord(float deltaTime, bool goToRight) {

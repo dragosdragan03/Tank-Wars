@@ -42,16 +42,12 @@ namespace m1
         std::vector<float> heightField;
         // variables for tank
         float heightTank, lengthTank;
-        // float coordTankX, coordTankY, tankAngle, turretAngle;
-        // variables for enemy tank
-        // float coordEnemyX, coordEnemyY;
+
         float lengthTurret, heightTurret;
         // variables for projectile
         float projectileLength;
         tank::Tank *goodTank, *enemyTank;
         void generateTrajectoryForEnemyTank(float deltaTimeSeconds);
         void generateTrajectoryForTank(float deltaTimeSeconds);
-        // std::vector<projectile::Projectile*> projectilesEnemyTank;
-
     };
 }

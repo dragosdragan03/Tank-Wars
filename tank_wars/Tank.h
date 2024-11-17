@@ -16,7 +16,7 @@ namespace tank {
     class Tank {
     public:
         // Constructor
-        Tank(float coordX, float coordY, float turretAngle, std::vector<float> heightField, float heightTank, float lengthTank);
+        Tank(float coordX, float coordY, float turretAngle, std::vector<float> &heightField, float heightTank, float lengthTank);
 
         // Public method to place the tank
         glm::mat3 placeTank();
@@ -35,16 +35,19 @@ namespace tank {
         glm::vec3 getInitialProjectileVelocity() const ;
         glm::mat3 placeHealthBar();
         glm::mat3 placeBorderBar();
+        void updateCoordEveryFrame();
+
     private:
         // private functions
         float calculateCoordY(float coordX);
         std::pair<float, float> returnTrapezoid(float x);
         void calculateTankAngle();
-        bool projectileHitTank(float coordProjectileX, float coordProjectileY);
+        bool projectileHitTank(float coordProjectileX, float coordProjectileY, bool forEnemy);
+        void applyProjectileImpact(float impactX, float impactY, int RADIUS);
         // Dimensions and position
 
         std::pair<float, float> coordTank;
-        std::vector<float> heightField;
+        std::vector<float> &heightField;
 
         // Angles for tank orientation and turret
         float tankAngle;
